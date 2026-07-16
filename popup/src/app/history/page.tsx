@@ -29,8 +29,10 @@ export default function HistoryPage() {
     async function load() {
       let sid = "";
       if (typeof chrome !== "undefined" && chrome.storage) {
-        const s = await new Promise<{ sessionId?: string }>((r: any) =>
-          chrome.storage.local.get("sessionId", r)
+        const s = await new Promise<{ sessionId?: string }>((resolve) =>
+          chrome.storage.local.get("sessionId", (items) =>
+            resolve(items as { sessionId?: string })
+          )
         );
         sid = s.sessionId || "";
       } else {

@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     class Config:
         env_file = str(ENV_FILE)
 
+    @property
+    def ai_models(self) -> list[str]:
+        """DEEPSEEK_MODEL as a comma-separated fallback chain, e.g. 'model-a,model-b'."""
+        return [m.strip() for m in self.deepseek_model.split(",") if m.strip()]
+
 
 @lru_cache()
 def get_settings() -> Settings:

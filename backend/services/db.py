@@ -10,10 +10,7 @@ _db: AsyncIOMotorDatabase = None
 
 async def connect_db():
     global _client, _db
-    _client = AsyncIOMotorClient(
-        settings.mongodb_url,
-        tlsAllowInvalidCertificates=True,
-    )
+    _client = AsyncIOMotorClient(settings.mongodb_url)
     _db = _client[settings.mongodb_db_name]
     # Create indexes
     await _db.scam_reports.create_index("created_at")

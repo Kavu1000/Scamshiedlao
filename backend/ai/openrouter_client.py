@@ -5,7 +5,7 @@ import httpx
 import json
 
 # pyrefly: ignore [missing-import]
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 from backend.config import get_settings
 
 settings = get_settings()
@@ -43,9 +43,44 @@ Risk score guide:
 """
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+def _is_not_rate_limit(e: BaseException) -> bool:
+    """Only retry the same model on transient errors — a 429 should fall through to the next model instead."""
+    return not (isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 429)
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception(_is_not_rate_limit),
+)
+async def _call_model(client: httpx.AsyncClient, model: str, headers: dict, user_message: str) -> dict:
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_message},
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.1,
+        "max_tokens": 512,
+    }
+    response = await client.post(
+        f"{settings.openrouter_base_url}/chat/completions",
+        headers=headers,
+        json=payload,
+    )
+    response.raise_for_status()
+    data = response.json()
+    content = data["choices"][0]["message"]["content"]
+    return json.loads(content)
+
+
 async def analyze_with_deepseek(text: str, url: str = "", page_title: str = "") -> dict:
-    """Send text to DeepSeek-R1 via OpenRouter for AI scam analysis."""
+    """
+    Send text to OpenRouter for AI scam analysis. Tries each model in
+    settings.ai_models (DEEPSEEK_MODEL, comma-separated) in order — if one is
+    rate-limited upstream, falls through to the next.
+    """
     if not settings.openrouter_api_key or settings.openrouter_api_key == "your_openrouter_api_key_here":
         return _fallback_response()
 
@@ -65,27 +100,18 @@ Respond with JSON only."""
         "X-Title": "ScamShield Lao",
     }
 
-    payload = {
-        "model": settings.deepseek_model,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_message},
-        ],
-        "response_format": {"type": "json_object"},
-        "temperature": 0.1,
-        "max_tokens": 512,
-    }
-
+    last_error: Exception = RuntimeError("No AI models configured (DEEPSEEK_MODEL is empty)")
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            f"{settings.openrouter_base_url}/chat/completions",
-            headers=headers,
-            json=payload,
-        )
-        response.raise_for_status()
-        data = response.json()
-        content = data["choices"][0]["message"]["content"]
-        return json.loads(content)
+        for model in settings.ai_models:
+            try:
+                return await _call_model(client, model, headers, user_message)
+            except httpx.HTTPStatusError as e:
+                last_error = e
+                if e.response.status_code == 429:
+                    print(f"⚠️  {model} rate-limited upstream, trying next model")
+                    continue
+                raise
+    raise last_error
 
 
 def _fallback_response() -> dict:

@@ -95,7 +95,7 @@ export default function PopupPage() {
       const health = await checkHealth();
       setBackendOnline(health);
 
-      const stored = await getChromeStorage<any>(["lastScanResult", "autoScan", "lastScanUrl"]);
+      const stored = await getChromeStorage<unknown>(["lastScanResult", "autoScan", "lastScanUrl"]);
       if (stored.lastScanResult) setScanResult(stored.lastScanResult as ScanResult);
       if (stored.autoScan !== undefined) setAutoScan(stored.autoScan as boolean);
       if (stored.lastScanUrl) setCurrentUrl(stored.lastScanUrl as string);
@@ -198,7 +198,7 @@ export default function PopupPage() {
           <button className="btn btn-secondary" style={{ flex: 1 }}
             onClick={() => {
               if (typeof chrome !== "undefined" && chrome.tabs) {
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any[]) => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                   if (tabs[0]?.id) chrome.tabs.reload(tabs[0].id);
                 });
               }

@@ -114,7 +114,9 @@ export function getChromeStorage<T>(
   keys: string[]
 ): Promise<Record<string, T>> {
   if (typeof chrome !== "undefined" && chrome.storage) {
-    return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
+    return new Promise((resolve) =>
+      chrome.storage.local.get(keys, (items) => resolve(items as Record<string, T>))
+    );
   }
   const result: Record<string, T> = {};
   keys.forEach((k) => {
