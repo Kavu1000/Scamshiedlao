@@ -1,0 +1,15 @@
+# Python virtual environment
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.env
+
+# Node.js dependencies & builds
+popup/node_modules/
+popup/.next/
+popup/out/
+
+# System / OS files
+.DS_Store
+Thumbs.db
+*.log

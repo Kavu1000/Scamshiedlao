@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+motor
+pymongo
+pydantic
+pydantic-settings
+httpx
+python-dotenv
+python-multipart
+tenacity

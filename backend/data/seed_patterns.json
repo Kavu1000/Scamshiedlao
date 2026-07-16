@@ -1,0 +1,52 @@
+{
+  "lao_keywords": [
+    "ວຽກງານຕ່າງປະເທດ", "ລາຍໄດ້ສູງ", "ບໍ່ຕ້ອງການປະສົບການ", "ສົ່ງຟຣີ",
+    "ທີ່ພັກຟຣີ", "ຕິດຕໍ່ WhatsApp", "ດ່ວນ", "ໂອກາດດີ", "ສະໝັກດ່ວນ",
+    "ເງິນລ່ວງໜ້າ", "ຝາກເງິນ", "ຮັບປະກັນ", "ຜົນກຳໄລ", "ລາຍໄດ້ຕໍ່ເດືອນ",
+    "ບໍ່ມີຄ່າໃຊ້ຈ່າຍ", "ລົງທຶນ", "cryptocurrency", "ເງິນດິຈິຕອນ",
+    "ຄູ່ຮັກ", "ໝູ່ໃໝ່", "ຊ່ວຍເຫຼືອ", "ສ່ອງ", "ວີຊາ", "ຜ່ານດ່ວນ",
+    "ບໍ່ຕ້ອງ visa", "ຮັກ", "ຜົວ", "ເມຍ", "ແຕ່ງງານ",
+    "ເດີນທາງຟຣີ", "ຕ໋ົວຟຣີ", "casino", "ການພະນັນ", "ລາງວັນ",
+    "ໄດ້ຮັບລາງວັນ", "ຖືກລາງວັນ", "ໂອນເງິນ", "ຂໍເງິນ", "ສ່ວນຫຼຸດ",
+    "ຊ້ອນ", "ຄ່ານາຍໜ້າ", "ວຽກອອນລາຍ", "ກົດລີ້ງ", "ກົດຮັບ"
+  ],
+  "english_keywords": [
+    "urgent hiring", "no experience needed", "free housing", "free flights",
+    "high salary", "work abroad", "contact via whatsapp", "limited spots",
+    "act now", "guaranteed income", "invest now", "crypto profit",
+    "double your money", "send money first", "wire transfer", "bitcoin",
+    "love interest", "online dating", "new friend", "visa assistance",
+    "recruitment fee", "processing fee", "advance payment", "job offer",
+    "$5000/month", "$3000/month", "monthly income", "easy money",
+    "click the link", "claim your reward", "you have won", "prize winner",
+    "phishing", "account suspended", "verify your account", "click here immediately",
+    "human trafficking", "overseas job", "casino job", "online gambling"
+  ],
+  "urgency_phrases": [
+    "act now", "limited time", "hurry", "don't miss", "last chance",
+    "expires soon", "immediate", "urgent", "ດ່ວນ", "ຫ້ອງສຸດທ້າຍ",
+    "ໂອກາດສຸດທ້າຍ", "ລີ້ງໝົດອາຍຸ"
+  ],
+  "whatsapp_patterns": [
+    "whatsapp", "wa.me", "chat via wa", "message on whatsapp",
+    "add on whatsapp", "ຕິດຕໍ່ WhatsApp", "ສົ່ງ WhatsApp"
+  ],
+  "high_salary_patterns": [
+    "\\$[2-9],?[0-9]{3}[/\\s]?(month|monthly|mo)",
+    "\\$[1-9][0-9],?[0-9]{3}[/\\s]?(month|monthly|mo)",
+    "[0-9,]+\\s*ໂດລາ\\s*ຕໍ່ເດືອນ",
+    "[0-9,]+\\s*ບາດ\\s*ຕໍ່ເດືອນ"
+  ],
+  "blocked_domains": [
+    "scam-jobs.net", "easymoney-lao.com", "fakejob-lao.info",
+    "freemoney-online.tk", "laojob-overseas.xyz", "quickloan-lao.site"
+  ],
+  "scam_types": {
+    "job_scam": ["overseas job", "hiring abroad", "ວຽກງານຕ່າງປະເທດ", "recruitment"],
+    "trafficking": ["free housing", "free flights", "no visa needed", "ທີ່ພັກຟຣີ", "ຕ໋ົວຟຣີ"],
+    "phishing": ["verify account", "account suspended", "click link", "login here"],
+    "crypto_fraud": ["bitcoin", "crypto", "invest", "double money", "ລົງທຶນ"],
+    "romance_scam": ["love", "dating", "ຄູ່ຮັກ", "new friend", "marriage"],
+    "gambling": ["casino", "bet", "ການພະນັນ", "ລາງວັນ", "jackpot"]
+  }
+}
