@@ -117,7 +117,7 @@ export default function SettingsPage() {
           color: "#818cf8",
           lineHeight: 1.6,
         }}>
-          <strong>✦ AI Engine: DeepSeek-R1</strong> via OpenRouter<br />
+          <strong>✦ AI Engine</strong> via OpenRouter (multi-model fallback)<br />
           Add your API key to <code style={{ fontSize: 10, background: "rgba(255,255,255,0.05)", padding: "1px 4px", borderRadius: 3 }}>backend/.env</code> to enable AI analysis.
         </div>
 

@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ScamShield Lao is a real-time scam detection system for Lao-language and English web content, built as three coordinated pieces:
 
-- **`extension/`** — Chrome MV3 extension (plain JS, no build step). `content.js` extracts page text and renders risk overlays/banners; `background.js` is the service worker that talks to the backend and manages badge/session state.
-- **`popup/`** — Next.js app that renders the extension's popup UI (status, history, settings). It is statically exported (`output: "export"`) since Chrome extensions can't run a Next.js server.
+- **`extension/`** — Chrome MV3 extension (plain JS, no build step). `content.js` extracts page text and renders risk overlays/banners; `background.js` is the service worker that talks to the backend and manages badge/session state. **`extension/popup/` is a hand-authored, self-contained vanilla popup** (`index.html` + `popup.css` + `popup.js`, no inline scripts, relative asset paths) — this is what the extension actually loads. It is NOT the Next.js build output.
+- **`popup/`** — Next.js app kept only as a browser-based design/preview playground (`npm run dev` at localhost:3000). **Its static export can NOT run as the extension popup**: Next.js emits inline bootstrap `<script>` tags that MV3's extension CSP (`script-src 'self'`, no `'unsafe-inline'` allowed) blocks, and it uses absolute `/_next/` asset paths that 404 from the `popup/` subdirectory. Do not copy `popup/out/` over `extension/popup/` — that re-breaks the extension.
 - **`backend/`** — Python FastAPI service (`localhost:8000`) that does the actual scam analysis and talks to MongoDB.
 
 ## Commands
@@ -42,12 +42,11 @@ npm run lint
 
 ### Building/loading the extension
 
-```bash
-./build_popup.sh   # runs `npm run build` in popup/, static files land in popup/out/
-```
-`extension/manifest.json` points its popup at `popup/index.html` **relative to `extension/`**, and the built static files already live under `extension/popup/` in this repo (not `popup/out/`). If you rebuild the popup, copy the contents of `popup/out/` into `extension/popup/` before reloading the extension — there is no script that does this automatically.
+The extension has **no build step**. `extension/popup/` is edited directly (plain HTML/CSS/JS). `extension/manifest.json` points its popup at `popup/index.html` relative to `extension/`.
 
 To load the extension: open `chrome://extensions/`, enable Developer mode, "Load unpacked", select the `extension/` folder.
+
+Note on reloading: an unpacked extension's ID is derived from its folder path, so removing + re-adding from the same path keeps the same `chrome-extension://` origin and Chrome may serve the **popup from cache**. To force-refresh the popup after editing: open it, right-click → Inspect, check "Disable cache" in the Network tab, then ⌘R. Bumping `version` in `manifest.json` is a quick way to confirm a reload actually took effect.
 
 ## Architecture
 
@@ -58,7 +57,7 @@ All scam detection logic lives in [backend/services/scam_detector.py](backend/se
 1. **Heuristic pre-filter** (`_heuristic_score`) — scores 0–100 by matching text/URL against pattern lists loaded once at import time from [backend/data/seed_patterns.json](backend/data/seed_patterns.json) (Lao/English keywords, urgency phrases, WhatsApp CTAs, high-salary regexes, blocked domains, and per-scam-type keyword sets used to guess `scam_type`).
 2. **AI analysis** (only runs if heuristic score >= 40) — [backend/ai/openrouter_client.py](backend/ai/openrouter_client.py) sends the page text to DeepSeek-R1 via OpenRouter with a system prompt demanding strict JSON output, retried up to 3x with exponential backoff. If no API key is configured, or the request errors, it falls back to a neutral zero-risk result rather than failing the scan.
 
-Final `risk_score` = `heuristic_score * 0.30 + ai_score * 0.70` when AI ran, otherwise just the heuristic score. `risk_level` buckets: LOW (0–25) / MEDIUM (26–50) / HIGH (51–75) / CRITICAL (76–100).
+Final `risk_score` = `heuristic_score * 0.30 + ai_score * 0.70` when AI ran, otherwise just the heuristic score. `risk_level` buckets: LOW (0–9) / MEDIUM (10–50) / HIGH (51–75) / CRITICAL (76–100).
 
 ### Caching and persistence (MongoDB, via `backend/services/db.py`)
 

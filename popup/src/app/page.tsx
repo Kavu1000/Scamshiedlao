@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ScanResult, getChromeStorage, setChromeStorage, checkHealth } from "@/lib/api";
+import { ScanResult, checkHealth } from "@/lib/api";
 
 function RiskScoreCard({ result }: { result: ScanResult }) {
   const level = result.risk_level.toLowerCase();
@@ -17,11 +17,9 @@ function RiskScoreCard({ result }: { result: ScanResult }) {
       <div className="risk-card-header">
         <span className="risk-label">Risk Analysis</span>
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          {result.ai_analyzed && (
-            <span className="ai-badge">✦ DeepSeek-R1</span>
-          )}
+          {result.ai_analyzed && <span className="ai-badge">✦ AI Verified</span>}
           <span className={`risk-badge risk-badge-${level}`}>
-            {level === "critical" && "🔴"} 
+            {level === "critical" && "🔴"}
             {level === "high" && "🟠"}
             {level === "medium" && "🟡"}
             {level === "low" && "🟢"}
@@ -71,6 +69,16 @@ function SafeCard() {
   );
 }
 
+function UnavailableCard({ message }: { message: string }) {
+  return (
+    <div className="unavailable-card">
+      <span className="unavailable-icon">🔍</span>
+      <div className="unavailable-title">Not Scanned Yet</div>
+      <div className="unavailable-desc">{message}</div>
+    </div>
+  );
+}
+
 function SkeletonCard() {
   return (
     <div className="risk-card">
@@ -85,51 +93,84 @@ function SkeletonCard() {
 
 export default function PopupPage() {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [autoScan, setAutoScan] = useState(true);
+  const [scanning, setScanning] = useState(true);
+  const [unavailableMsg, setUnavailableMsg] = useState<string | null>(null);
   const [backendOnline, setBackendOnline] = useState(true);
   const [currentUrl, setCurrentUrl] = useState("");
 
-  useEffect(() => {
-    async function init() {
-      const health = await checkHealth();
-      setBackendOnline(health);
+  const triggerScan = useCallback(async () => {
+    setScanning(true);
+    setUnavailableMsg(null);
+    setScanResult(null);
 
-      const stored = await getChromeStorage<unknown>(["lastScanResult", "autoScan", "lastScanUrl"]);
-      if (stored.lastScanResult) setScanResult(stored.lastScanResult as ScanResult);
-      if (stored.autoScan !== undefined) setAutoScan(stored.autoScan as boolean);
-      if (stored.lastScanUrl) setCurrentUrl(stored.lastScanUrl as string);
-      setLoading(false);
+    if (typeof chrome === "undefined" || !chrome.tabs) {
+      setUnavailableMsg("Load this as a Chrome extension to scan the active tab.");
+      setScanning(false);
+      return;
     }
-    init();
+
+    const tab = await new Promise<{ id?: number; url?: string }>((resolve) =>
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => resolve(tabs[0] || {}))
+    );
+
+    if (!tab.id) {
+      setUnavailableMsg("No active tab found.");
+      setScanning(false);
+      return;
+    }
+    setCurrentUrl(tab.url || "");
+
+    const response = await new Promise<unknown>((resolve) =>
+      chrome.tabs.sendMessage(tab.id!, { type: "TRIGGER_SCAN" }, (res) => resolve(res))
+    );
+
+    const errored = chrome.runtime.lastError || !response || (response as { error?: string }).error;
+    if (errored) {
+      const reason = (response as { error?: string })?.error;
+      setUnavailableMsg(
+        reason || "Couldn't reach this page — try reloading the tab, or this page type isn't supported."
+      );
+      setScanning(false);
+      return;
+    }
+
+    setScanResult(response as ScanResult);
+    setScanning(false);
   }, []);
 
-  const handleAutoScanToggle = async (value: boolean) => {
-    setAutoScan(value);
-    await setChromeStorage({ autoScan: value });
-    if (typeof chrome !== "undefined" && chrome.runtime) {
-      chrome.runtime.sendMessage({ type: "SET_AUTO_SCAN", value });
-    }
-  };
+  useEffect(() => {
+    (async () => {
+      const health = await checkHealth();
+      setBackendOnline(health);
+      if (health) await triggerScan();
+      else setScanning(false);
+    })();
+  }, [triggerScan]);
 
   const statusText = !backendOnline
     ? "Backend Offline"
-    : loading
-    ? "Scanning... (ກຳລັງປົກປ້ອງ)"
+    : scanning
+    ? "Scanning current page... (ກຳລັງກວດ)"
     : scanResult?.is_scam
     ? `Scam detected on this page: ${scanResult.risk_score}%`
-    : "Page is Safe ✓";
+    : scanResult
+    ? "Page is Safe ✓"
+    : "Ready to scan";
 
   const statusDotClass = !backendOnline
     ? "status-dot status-dot-offline"
-    : loading
+    : scanning
     ? "status-dot status-dot-scanning"
     : scanResult?.is_scam
     ? "status-dot status-dot-threat"
-    : "status-dot status-dot-safe";
+    : scanResult
+    ? "status-dot status-dot-safe"
+    : "status-dot status-dot-offline";
 
   return (
     <div className="popup-container">
+      {scanning && <div className="scan-progress-bar" />}
+
       {/* Header */}
       <header className="header">
         <div className="header-brand">
@@ -153,22 +194,18 @@ export default function PopupPage() {
             <span className={statusDotClass} />
             <span className="status-text">{statusText}</span>
           </div>
-          <div className="status-right">
-            <span className="toggle-label">Auto-Scan</span>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={autoScan}
-                onChange={(e) => handleAutoScanToggle(e.target.checked)}
-              />
-              <span className="toggle-track" />
-              <span className="toggle-thumb" />
-            </label>
-          </div>
+          <button
+            className={`icon-btn-scan${scanning ? " spin" : ""}`}
+            title="Scan this page"
+            onClick={triggerScan}
+            disabled={scanning || !backendOnline}
+          >
+            ↻
+          </button>
         </div>
 
         {/* Result */}
-        {loading ? (
+        {scanning ? (
           <SkeletonCard />
         ) : scanResult?.is_scam ? (
           <>
@@ -186,25 +223,27 @@ export default function PopupPage() {
             </div>
             <RiskScoreCard result={scanResult} />
           </>
-        ) : (
+        ) : scanResult ? (
           <SafeCard />
+        ) : (
+          <UnavailableCard
+            message={unavailableMsg || "Click Scan This Page to check for scam indicators."}
+          />
         )}
 
         {/* Actions */}
         <div className="btn-group">
-          <Link href="/history" className="btn btn-secondary" style={{ flex: 1 }}>
-            🕐 View Scan History
-          </Link>
-          <button className="btn btn-secondary" style={{ flex: 1 }}
-            onClick={() => {
-              if (typeof chrome !== "undefined" && chrome.tabs) {
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                  if (tabs[0]?.id) chrome.tabs.reload(tabs[0].id);
-                });
-              }
-            }}>
-            ↻ Re-scan
+          <button
+            className="btn btn-primary"
+            style={{ flex: 2 }}
+            onClick={triggerScan}
+            disabled={scanning || !backendOnline}
+          >
+            {scanning ? "⏳ Scanning..." : scanResult ? "↻ Re-scan Page" : "🔍 Scan This Page"}
           </button>
+          <Link href="/history" className="btn btn-secondary" style={{ flex: 1 }}>
+            🕐 History
+          </Link>
         </div>
 
         {!backendOnline && (
@@ -224,7 +263,7 @@ export default function PopupPage() {
       {/* Footer */}
       <footer className="popup-footer">
         <span className="footer-url">{currentUrl || "No page scanned yet"}</span>
-        <span className="ai-badge">✦ DeepSeek-R1</span>
+        {scanResult?.ai_analyzed && <span className="ai-badge">✦ AI Verified</span>}
       </footer>
     </div>
   );

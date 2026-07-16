@@ -126,13 +126,31 @@
   background: linear-gradient(135deg, #78350f, #f97316);
   color: #fff;
 }
+.scamshield-banner-safe {
+  background: linear-gradient(135deg, #14532d, #16a34a);
+  color: #fff;
+}
 .scamshield-banner-inner {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
+.scamshield-banner-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+.scamshield-banner-reasons {
+  margin: 3px 0 0;
+  padding-left: 18px;
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+.scamshield-banner-reasons li { margin: 1px 0; }
 .scamshield-banner-icon { font-size: 18px; }
 .scamshield-banner-text { flex: 1; }
 .scamshield-banner-type {

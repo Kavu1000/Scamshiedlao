@@ -84,17 +84,59 @@
     highlightedElements.push(el);
   }
 
-  // ─── Page-level warning banner ─────────────────────────────────────────────
+  // ─── Escape helper ─────────────────────────────────────────────────────────
+  function esc(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+    );
+  }
+
+  // ─── Page-level banner (safe + risky) ──────────────────────────────────────
   function showPageBanner(result) {
     const existing = document.getElementById("scamshield-banner");
     if (existing) existing.remove();
 
     if (!result || !result.risk_level) return;
 
+    const reasons = Array.isArray(result.reasons) ? result.reasons.slice(0, 3) : [];
     const level = result.risk_level.toLowerCase();
-    // Show banner for CRITICAL, HIGH, MEDIUM — skip LOW
-    if (level === "low") return;
 
+    if (level === "low") {
+      // ── Safe banner (green) with "safe because..." explanation ──
+      const banner = document.createElement("div");
+      banner.id = "scamshield-banner";
+      banner.className = "scamshield-banner scamshield-banner-safe";
+      const reasonsHtml = reasons.length
+        ? `<ul class="scamshield-banner-reasons">${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>`
+        : "";
+      banner.innerHTML = `
+        <div class="scamshield-banner-inner">
+          <span class="scamshield-banner-icon">✅</span>
+          <div class="scamshield-banner-text">
+            <strong>ScamShield Lao</strong> — This page looks safe (risk ${esc(result.risk_score)}%)
+            ${reasonsHtml ? `<div class="scamshield-banner-subtitle">Safe because:</div>${reasonsHtml}` : ""}
+          </div>
+          <button class="scamshield-banner-close" id="scamshield-dismiss">✕</button>
+        </div>
+      `;
+      document.body.prepend(banner);
+      document.getElementById("scamshield-dismiss").onclick = () => banner.remove();
+      // Safe banners auto-dismiss so they don't linger.
+      setTimeout(() => {
+        const b = document.getElementById("scamshield-banner");
+        if (b && b.classList.contains("scamshield-banner-safe")) {
+          b.style.transition = "opacity 0.5s ease";
+          b.style.opacity = "0";
+          setTimeout(() => b.remove(), 500);
+        }
+      }, 8000);
+      return;
+    }
+
+    // ── Risk banner (CRITICAL / HIGH / MEDIUM) ──
+    const reasonsHtml = reasons.length
+      ? `<ul class="scamshield-banner-reasons">${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>`
+      : "";
     const banner = document.createElement("div");
     banner.id = "scamshield-banner";
     banner.className = `scamshield-banner scamshield-banner-${level}`;
@@ -102,8 +144,9 @@
       <div class="scamshield-banner-inner">
         <span class="scamshield-banner-icon">🛡</span>
         <div class="scamshield-banner-text">
-          <strong>ScamShield Lao</strong> — ⚠ ${result.risk_level} RISK detected on this page (${result.risk_score}%)
-          <span class="scamshield-banner-type">${result.scam_type && result.scam_type !== "none" ? "· " + result.scam_type.replace("_", " ").toUpperCase() : ""}</span>
+          <strong>ScamShield Lao</strong> — ⚠ ${esc(result.risk_level)} RISK detected on this page (${esc(result.risk_score)}%)
+          <span class="scamshield-banner-type">${result.scam_type && result.scam_type !== "none" ? "· " + esc(result.scam_type.replace("_", " ").toUpperCase()) : ""}</span>
+          ${reasonsHtml ? `<div class="scamshield-banner-subtitle">Why:</div>${reasonsHtml}` : ""}
         </div>
         <button class="scamshield-banner-close" id="scamshield-dismiss">✕</button>
       </div>
@@ -127,10 +170,13 @@
     });
   }
 
-  // ─── Initial page scan ─────────────────────────────────────────────────────
-  function runInitialScan() {
+  // ─── Perform a scan on demand and respond to whoever asked ─────────────────
+  function performScan(sendResponse) {
     const text = getPageText();
-    if (!text || text.length < 50) return;
+    if (!text || text.length < 50) {
+      sendResponse({ error: "Not enough text on this page to scan." });
+      return;
+    }
 
     chrome.runtime.sendMessage(
       {
@@ -140,28 +186,28 @@
         pageTitle: document.title,
       },
       (response) => {
-        if (chrome.runtime.lastError || !response) return;
-        if (response.skipped) return;
+        if (chrome.runtime.lastError || !response || response.error) {
+          sendResponse({ error: response?.error || "Scan request failed." });
+          return;
+        }
         scanResult = response;
         showPageBanner(response);
         highlightFlaggedElements(response);
+        sendResponse(response);
       }
     );
   }
 
-  // ─── Listen for result from background ────────────────────────────────────
-  chrome.runtime.onMessage.addListener((message) => {
+  // ─── Listen for scan triggers (from the popup) and relayed results ────────
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "TRIGGER_SCAN") {
+      performScan(sendResponse);
+      return true; // keep channel open for the async response
+    }
     if (message.type === "SCAN_RESULT") {
       scanResult = message.result;
       showPageBanner(message.result);
       highlightFlaggedElements(message.result);
     }
   });
-
-  // Run on page load
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", runInitialScan);
-  } else {
-    runInitialScan();
-  }
 })();

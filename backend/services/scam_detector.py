@@ -33,41 +33,55 @@ def _heuristic_score(text: str, url: str) -> dict:
     score = 0
     matched = []
     detected_type = "none"
+    # Track which signal categories fired, so a clean scan can explain *why* it's safe.
+    categories = {
+        "keywords": False,
+        "urgency": False,
+        "whatsapp": False,
+        "high_salary": False,
+        "blocked_domain": False,
+    }
 
     # Keyword matching
     for kw in LAO_KEYWORDS:
         if kw in text:
             score += 4
             matched.append(kw)
+            categories["keywords"] = True
 
     for kw in ENGLISH_KEYWORDS:
         if kw.lower() in text_lower:
             score += 3
             matched.append(kw)
+            categories["keywords"] = True
 
     # Urgency phrases
     for phrase in URGENCY_PHRASES:
         if phrase.lower() in text_lower:
             score += 5
             matched.append(phrase)
+            categories["urgency"] = True
 
     # WhatsApp CTA (strong scam signal)
     for pat in WHATSAPP_PATTERNS:
         if pat.lower() in text_lower:
             score += 8
             matched.append(pat)
+            categories["whatsapp"] = True
 
     # High salary promises
     for pattern in HIGH_SALARY_PATTERNS:
         if re.search(pattern, text, re.IGNORECASE):
             score += 10
             matched.append("High salary promise")
+            categories["high_salary"] = True
 
     # Blocked domain check
     for domain in BLOCKED_DOMAINS:
         if domain in url:
             score += 40
             matched.append(f"Blocked domain: {domain}")
+            categories["blocked_domain"] = True
 
     # Detect scam type from keywords
     for stype, keywords in SCAM_TYPES.items():
@@ -81,7 +95,26 @@ def _heuristic_score(text: str, url: str) -> dict:
         "heuristic_score": score,
         "matched_signals": matched[:10],
         "detected_type": detected_type,
+        "categories": categories,
     }
+
+
+def _safe_reasons(categories: dict, ai_analyzed: bool) -> list[str]:
+    """Build positive 'safe because...' explanations from the checks that came back clean."""
+    reasons = []
+    if ai_analyzed:
+        reasons.append("AI analysis reviewed the page and found no scam patterns")
+    if not categories.get("high_salary"):
+        reasons.append("No unrealistic salary figures promised (e.g. '$5,000/month')")
+    if not categories.get("urgency"):
+        reasons.append("No urgency or pressure tactics (e.g. 'act now', 'limited time')")
+    if not categories.get("whatsapp"):
+        reasons.append("No attempt to move you to WhatsApp or a private chat")
+    if not categories.get("keywords"):
+        reasons.append("No known scam or fraud keywords found in the page text")
+    if not categories.get("blocked_domain"):
+        reasons.append("This site's domain is not on any known-scam blocklist")
+    return reasons[:4] or ["No strong scam indicators were detected on this page"]
 
 
 def _risk_level(score: int) -> str:
@@ -89,7 +122,7 @@ def _risk_level(score: int) -> str:
         return "CRITICAL"
     elif score >= 51:
         return "HIGH"
-    elif score >= 26:
+    elif score >= 10:
         return "MEDIUM"
     return "LOW"
 
@@ -145,6 +178,15 @@ async def analyze_content(
         scam_type = heuristic["detected_type"]
         is_scam = final_score >= 50
         confidence = final_score / 100
+
+    # Explanation list:
+    #  - LOW risk (score <= 9)    -> positive "safe because..." reasons
+    #  - MEDIUM / HIGH / CRITICAL -> keep the risk reasons (why it's suspicious)
+    if final_score <= 9 and not is_scam:
+        reasons = _safe_reasons(heuristic["categories"], ai_result is not None)
+    elif not reasons:
+        reasons = [f"Matched suspicious pattern: {s}" for s in heuristic["matched_signals"][:3]] \
+            or ["Some suspicious elements were detected on this page"]
 
     result = {
         "risk_score": final_score,

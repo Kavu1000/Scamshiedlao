@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ScamShield Lao",
-  description: "Real-time scam detection for Lao users powered by DeepSeek-R1 AI",
+  description: "Real-time scam detection for Lao users powered by AI",
 };
 
 export default function RootLayout({

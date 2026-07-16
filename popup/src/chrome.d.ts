@@ -9,13 +9,21 @@ interface ChromeStorageLocal {
 interface ChromeTabs {
   query(
     queryInfo: { active?: boolean; currentWindow?: boolean },
-    callback: (tabs: Array<{ id?: number }>) => void
+    callback: (tabs: Array<{ id?: number; url?: string }>) => void
   ): void;
   reload(tabId: number): void;
+  sendMessage(
+    tabId: number,
+    message: unknown,
+    callback: (response: unknown) => void
+  ): void;
 }
 
 declare const chrome: {
   storage: { local: ChromeStorageLocal };
-  runtime: { sendMessage: (message: unknown) => void };
+  runtime: {
+    sendMessage: (message: unknown) => void;
+    lastError?: { message?: string };
+  };
   tabs: ChromeTabs;
 };

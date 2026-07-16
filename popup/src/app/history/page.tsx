@@ -101,7 +101,7 @@ export default function HistoryPage() {
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-muted)", fontSize: 13 }}>
             <div style={{ fontSize: 32, marginBottom: 10 }}>📋</div>
-            No scan history yet.<br />Visit some pages and ScamShield will scan them automatically.
+            No scan history yet.<br />Click &quot;Scan This Page&quot; in the popup to check a page.
           </div>
         ) : (
           <div className="history-list" style={{ maxHeight: 340, overflowY: "auto" }}>
@@ -141,7 +141,7 @@ export default function HistoryPage() {
 
       <footer className="popup-footer">
         <span className="footer-url">Session: {sessionId.slice(0, 24)}…</span>
-        <span className="ai-badge">✦ DeepSeek-R1</span>
+        <span className="ai-badge">✦ AI Verified</span>
       </footer>
     </div>
   );

@@ -36,8 +36,8 @@ Response format (JSON only):
 }   
 
 Risk score guide:
-- 0-25: LOW — likely safe
-- 26-50: MEDIUM — some suspicious elements
+- 0-9: LOW — likely safe
+- 10-50: MEDIUM — some suspicious elements
 - 51-75: HIGH — strong scam indicators
 - 76-100: CRITICAL — very likely scam/trafficking
 """

@@ -10,24 +10,13 @@ async function getSessionId() {
   return id;
 }
 
-// Listen for messages from content script
+// Listen for messages from the content script / popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "SCAN_PAGE") {
     handleScanPage(message, sender).then(sendResponse).catch((err) => {
       sendResponse({ error: err.message });
     });
     return true; // keep channel open for async response
-  }
-
-  if (message.type === "GET_SCAN_STATE") {
-    chrome.storage.local.get(["autoScan", "lastScanResult"], sendResponse);
-    return true;
-  }
-
-  if (message.type === "SET_AUTO_SCAN") {
-    chrome.storage.local.set({ autoScan: message.value });
-    sendResponse({ ok: true });
-    return true;
   }
 
   if (message.type === "SUBMIT_REPORT") {
@@ -40,8 +29,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function handleScanPage(message, sender) {
   const sessionId = await getSessionId();
-  const { autoScan } = await chrome.storage.local.get("autoScan");
-  if (autoScan === false) return { skipped: true };
 
   const response = await fetch(`${API_BASE}/scan`, {
     method: "POST",
@@ -57,7 +44,7 @@ async function handleScanPage(message, sender) {
   if (!response.ok) throw new Error(`API error: ${response.status}`);
   const result = await response.json();
 
-  // Store last result for popup
+  // Store last result for the popup
   await chrome.storage.local.set({
     lastScanResult: result,
     lastScanUrl: message.url,
@@ -66,7 +53,7 @@ async function handleScanPage(message, sender) {
   // Update badge
   updateBadge(result.risk_level);
 
-  // Notify content script to render overlays
+  // Notify the content script so it can render overlays
   if (sender.tab?.id) {
     chrome.tabs.sendMessage(sender.tab.id, {
       type: "SCAN_RESULT",
@@ -101,14 +88,12 @@ function updateBadge(riskLevel) {
   });
 }
 
-// Auto-scan on tab navigation
+// Scanning only happens on demand (icon click opens the popup, which triggers
+// a scan, or the popup's Scan button). On navigation we just clear the stale
+// badge/result from the previous page so they don't linger.
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab.url?.startsWith("http")) {
-    const { autoScan } = await chrome.storage.local.get("autoScan");
-    if (autoScan !== false) {
-      // Reset badge while scanning
-      chrome.action.setBadgeText({ text: "..." });
-      chrome.action.setBadgeBackgroundColor({ color: "#6366f1" });
-    }
+  if (changeInfo.status === "loading" && tab.url?.startsWith("http")) {
+    chrome.action.setBadgeText({ text: "" });
+    await chrome.storage.local.remove(["lastScanResult", "lastScanUrl"]);
   }
 });
