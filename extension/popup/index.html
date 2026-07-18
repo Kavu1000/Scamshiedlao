@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="lo">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ScamShield Lao</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
+
 <body>
   <div class="popup-container">
     <div class="scan-progress-bar" id="progressBar"></div>
@@ -21,8 +23,17 @@
           </div>
         </div>
         <div class="header-actions">
-          <div class="icon-btn" data-goto="history" title="Scan History">🕐</div>
-          <div class="icon-btn" data-goto="settings" title="Settings">⚙</div>
+          <div class="icon-btn" data-goto="history" title="Scan History">
+            <div class="icon-history"></div>
+          </div>
+          <div class="icon-btn" data-goto="settings" title="Settings">
+            <div class="icon-settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -32,14 +43,29 @@
             <span class="status-dot" id="statusDot"></span>
             <span class="status-text" id="statusText">Ready to scan</span>
           </div>
-          <button class="icon-btn-scan" id="rescanBtn" title="Scan this page">↻</button>
+          <button class="icon-btn-scan" id="rescanBtn" title="Scan this page">
+            <div class="icon-refresh">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                <path d="M21 21v-5h-5"/>
+              </svg>
+            </div>
+          </button>
         </div>
 
         <div id="resultArea"></div>
 
         <div class="btn-group">
-          <button class="btn btn-primary" id="scanBtn" style="flex: 2;">🔍 Scan This Page</button>
-          <button class="btn btn-secondary" data-goto="history" style="flex: 1;">🕐 History</button>
+          <button class="btn btn-primary" id="scanBtn" style="flex: 2;">
+            <div class="icon-scan"></div>
+            <span>Scan This Page</span>
+          </button>
+          <button class="btn btn-secondary" data-goto="history" style="flex: 1;">
+            <div class="icon-history"></div>
+            <span>History</span>
+          </button>
         </div>
 
         <div class="alert-box error" id="backendAlert" style="display:none;">
@@ -57,7 +83,14 @@
     <section class="view" id="view-history" data-view="history">
       <header class="header">
         <div class="header-brand">
-          <div class="icon-btn" data-goto="scan" title="Back" style="margin-right:4px;">←</div>
+          <div class="icon-btn" data-goto="scan" title="Back" style="margin-right:4px;">
+            <div class="icon-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+            </div>
+          </div>
           <div>
             <div class="header-title">Scan History</div>
             <div class="header-subtitle" id="historySubtitle">0 scans</div>
@@ -86,7 +119,14 @@
     <section class="view" id="view-settings" data-view="settings">
       <header class="header">
         <div class="header-brand">
-          <div class="icon-btn" data-goto="scan" title="Back" style="margin-right:4px;">←</div>
+          <div class="icon-btn" data-goto="scan" title="Back" style="margin-right:4px;">
+            <div class="icon-back">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+            </div>
+          </div>
           <div>
             <div class="header-title">Settings</div>
             <div class="header-subtitle">ScamShield Lao</div>
@@ -128,11 +168,21 @@
           Add your API key to <code>backend/.env</code> to enable AI analysis.
         </div>
 
-        <button class="btn btn-primary" id="saveSettingsBtn" style="margin-top:12px;">💾 Save Settings</button>
+        <button class="btn btn-primary" id="saveSettingsBtn" style="margin-top:12px;">
+          <div class="icon-save">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+          </div>
+          <span>Save Settings</span>
+        </button>
       </main>
     </section>
   </div>
 
   <script src="popup.js"></script>
 </body>
+
 </html>

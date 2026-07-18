@@ -72,7 +72,17 @@ function renderScanning() {
   currentResult = null;
   setScanning(true);
   setStatus("Scanning current page... (ກຳລັງກວດ)", "scanning");
-  $("#scanBtn").textContent = "⏳ Scanning...";
+  $("#scanBtn").innerHTML = `
+    <div class="icon-refresh spin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+        <path d="M21 21v-5h-5"/>
+      </svg>
+    </div>
+    <span>Scanning...</span>
+  `;
   $("#aiBadge").style.display = "none";
   $("#resultArea").innerHTML = `
     <div class="risk-card">
@@ -87,7 +97,10 @@ function renderScanning() {
 function renderIdle(message) {
   setScanning(false);
   setStatus("Ready to scan", "");
-  $("#scanBtn").textContent = "🔍 Scan This Page";
+  $("#scanBtn").innerHTML = `
+    <div class="icon-scan"></div>
+    <span>Scan This Page</span>
+  `;
   $("#aiBadge").style.display = "none";
   $("#resultArea").innerHTML = `
     <div class="state-card idle">
@@ -101,7 +114,17 @@ function renderResult(result) {
   currentResult = result;
   setScanning(false);
   const level = (result.risk_level || "low").toLowerCase();
-  $("#scanBtn").textContent = "↻ Re-scan Page";
+  $("#scanBtn").innerHTML = `
+    <div class="icon-refresh">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+        <path d="M21 21v-5h-5"/>
+      </svg>
+    </div>
+    <span>Re-scan Page</span>
+  `;
   $("#aiBadge").style.display = result.ai_analyzed ? "inline-flex" : "none";
 
   // ── SAFE (LOW risk) ──
@@ -345,8 +368,26 @@ async function saveSettings() {
   };
   await storageSet({ scamshieldSettings: settings });
   const btn = $("#saveSettingsBtn");
-  btn.textContent = "✓ Saved!";
-  setTimeout(() => (btn.textContent = "💾 Save Settings"), 1600);
+  btn.innerHTML = `
+    <div class="icon-save">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <span>Saved!</span>
+  `;
+  setTimeout(() => {
+    btn.innerHTML = `
+      <div class="icon-save">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+      </div>
+      <span>Save Settings</span>
+    `;
+  }, 1600);
 }
 
 // ─── Backend health ─────────────────────────────────────────────────────────

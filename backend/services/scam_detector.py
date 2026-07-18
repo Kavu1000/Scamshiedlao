@@ -155,7 +155,7 @@ async def analyze_content(
 
     # Stage 2: AI (only if heuristic score warrants it)
     ai_result = None
-    if h_score >= 40:
+    if h_score >= 3:
         try:
             ai_result = await analyze_with_deepseek(text, url, page_title)
         except Exception as e:

@@ -8,7 +8,7 @@ ENV_FILE = Path(__file__).parent / ".env"
 
 
 class Settings(BaseSettings):
-    mongodb_url: str = "mongodb://localhost:27017"
+    mongodb_url: str = "mongodb+srv://kavuthao350_db_user:tFBME6B96Dg1JyLy@cluster0.qictlun.mongodb.net/?retryWrites=true&w=majority"
     mongodb_db_name: str = "scamshield_lao"
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"

@@ -13,6 +13,9 @@ fi
 # Activate venv
 source venv/bin/activate
 
+# Add parent folder to PYTHONPATH so absolute imports work
+export PYTHONPATH=..
+
 echo "🚀 Starting ScamShield Lao backend on http://localhost:8000"
 echo "📚 API docs: http://localhost:8000/docs"
 python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload

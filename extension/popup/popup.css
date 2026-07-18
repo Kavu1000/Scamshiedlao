@@ -201,11 +201,15 @@ html, body {
   color: var(--text-secondary);
   font-size: 14px;
   transition: all 0.2s ease;
+  display: flex;          
+  align-items: center;     
+  justify-content: center;
 }
 .icon-btn-scan:hover:not(:disabled) { background: var(--bg-card); color: var(--brand-primary); border-color: var(--border-accent); }
 .icon-btn-scan:disabled { cursor: default; opacity: 0.6; }
 .icon-btn-scan.spin { color: var(--brand-primary); border-color: var(--border-accent); animation: icon-spin 0.9s linear infinite; }
 @keyframes icon-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin { animation: icon-spin 0.9s linear infinite; }
 
 /* ─── Risk Card ───────────────────────────────────────── */
 .risk-card {
@@ -300,6 +304,8 @@ html, body {
   letter-spacing: 0.2px;
   width: 100%;
   font-family: inherit;
+  display: flex;
+  gap: 8px;
 }
 .btn-primary { background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)); color: #fff; box-shadow: 0 2px 12px var(--brand-glow); }
 .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 20px var(--brand-glow); }
@@ -444,3 +450,115 @@ html, body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── Custom CSS Icons (Professional Replacement) ─────── */
+
+/* 1. ไอคอนแว่นขยาย (Scan) */
+.icon-scan {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor; /* ใช้ currentColor เพื่อให้เปลี่ยนสีตาม Text ของปุ่มอัตโนมัติ */
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.icon-scan::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 5px;
+  background-color: currentColor;
+  bottom: -3px;
+  right: -2px;
+  transform: rotate(-45deg);
+}
+
+/* 2. ไอคอนนาฬิกา (History) */
+.icon-history {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.icon-history::before {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 4px;
+  background-color: currentColor;
+  top: 3px;
+  left: 6px;
+}
+.icon-history::after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 2px;
+  background-color: currentColor;
+  top: 5px;
+  left: 6px;
+}
+
+/* 3. ไอคอนลูกศรหมุน (Refresh) */
+.icon-refresh {
+  width: 14px;
+  height: 14px;
+  color: currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.icon-refresh svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 4. ไอคอนตั้งค่า (Settings) */
+.icon-settings {
+  width: 14px;
+  height: 14px;
+  color: currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.icon-settings svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 5. ไอคอนลูกศรย้อนกลับ (Back Arrow) */
+.icon-back {
+  width: 14px;
+  height: 14px;
+  color: currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.icon-back svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* 6. ไอคอนเซฟ (Save) */
+.icon-save {
+  width: 14px;
+  height: 14px;
+  color: currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.icon-save svg {
+  width: 100%;
+  height: 100%;
+}
