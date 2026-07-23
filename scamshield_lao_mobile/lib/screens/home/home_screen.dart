@@ -31,6 +31,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _overlayActive = false;
+  bool _overlayScanInProgress = false;
 
   @override
   void initState() {
@@ -98,6 +99,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// screen via MediaProjection, runs on-device OCR, and scans the extracted
   /// text — then pushes the result back to the OverlayResultCard.
   Future<void> _handleOverlayScanTrigger() async {
+    if (_overlayScanInProgress) return;
+    _overlayScanInProgress = true;
+
     // Notify overlay bubble to show a loading/scanning spinner
     await FlutterOverlayWindow.shareData({'status': 'scanning'});
 
@@ -128,6 +132,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'reasons': ['Scan error: ${e.toString()}'],
         'is_scam': false,
       });
+    } finally {
+      _overlayScanInProgress = false;
     }
   }
 
@@ -253,7 +259,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         decoration: BoxDecoration(
                           color: kError.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(kRadiusSm),
-                          border: Border.all(color: kError.withValues(alpha: 0.2)),
+                          border:
+                              Border.all(color: kError.withValues(alpha: 0.2)),
                         ),
                         child: const Text(
                           '⚠ Backend offline — start the Python server on port 8000',
@@ -309,8 +316,8 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: kSpaceLg, vertical: kSpaceMd),
+      padding:
+          const EdgeInsets.symmetric(horizontal: kSpaceLg, vertical: kSpaceMd),
       decoration: const BoxDecoration(
         color: kBgBase,
         border: Border(bottom: BorderSide(color: kBorder)),
@@ -356,11 +363,15 @@ class _Header extends StatelessWidget {
           IconButton(
             onPressed: onToggleOverlay,
             icon: Icon(
-              overlayActive ? Icons.screen_share : Icons.stop_screen_share_outlined,
+              overlayActive
+                  ? Icons.screen_share
+                  : Icons.stop_screen_share_outlined,
               color: overlayActive ? kBrandPrimary : kTextMuted,
               size: 22,
             ),
-            tooltip: overlayActive ? 'Stop Floating Bubble' : 'Start Floating Bubble',
+            tooltip: overlayActive
+                ? 'Stop Floating Bubble'
+                : 'Start Floating Bubble',
           ),
           const SizedBox(width: kSpaceSm),
           // Backend status dot

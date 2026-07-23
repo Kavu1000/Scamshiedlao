@@ -21,17 +21,22 @@ private const val TAG = "ScreenCaptureManager"
 
 /**
  * Holds the single [MediaProjection] token for the app's lifetime and grabs
- * one full-device-screen frame per [captureOnce] call. The projection itself
- * is created once (per user consent) and reused across captures — only the
- * per-capture [ImageReader]/[VirtualDisplay] pair is torn down after each shot.
+ * one full-device-screen frame per [captureOnce] call. The projection and its
+ * single [VirtualDisplay] are reused for the whole consent session; only the
+ * per-capture [ImageReader] surface is replaced after each shot.
  */
 object ScreenCaptureManager {
+    @Volatile
     private var mediaProjection: MediaProjection? = null
     private var handlerThread: HandlerThread? = null
     private var handler: Handler? = null
+    private var virtualDisplay: VirtualDisplay? = null
+    private var activeImageReader: ImageReader? = null
+    private var captureInProgress = false
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
+            releaseCaptureResources()
             mediaProjection = null
         }
     }
@@ -56,6 +61,7 @@ object ScreenCaptureManager {
     fun stop() {
         mediaProjection?.unregisterCallback(projectionCallback)
         mediaProjection?.stop()
+        releaseCaptureResources()
         mediaProjection = null
         handlerThread?.quitSafely()
         handlerThread = null
@@ -76,55 +82,98 @@ object ScreenCaptureManager {
             return
         }
 
-        val metrics = DisplayMetrics()
-        @Suppress("DEPRECATION")
-        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-            .defaultDisplay
-            .getRealMetrics(metrics)
-        val width = metrics.widthPixels
-        val height = metrics.heightPixels
-        val density = metrics.densityDpi
-
-        val imageReader = ImageReader.newInstance(width, height, android.graphics.PixelFormat.RGBA_8888, 2)
-        var virtualDisplay: VirtualDisplay? = null
-        // VirtualDisplay can deliver more than one buffered frame before teardown
-        // takes effect; onResult (and the Flutter Result it completes) must fire
-        // exactly once, so subsequent onImageAvailable callbacks are ignored.
-        val delivered = java.util.concurrent.atomic.AtomicBoolean(false)
-
-        imageReader.setOnImageAvailableListener({ reader ->
-            var image: Image? = null
-            try {
-                image = reader.acquireLatestImage()
-                if (delivered.compareAndSet(false, true)) {
-                    val path = image?.let { saveImageAsPng(context, it, width, height) }
-                    virtualDisplay?.release()
-                    imageReader.close()
-                    onResult(path)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "capture failed", e)
-                if (delivered.compareAndSet(false, true)) onResult(null)
-            } finally {
-                image?.close()
+        bgHandler.post {
+            if (mediaProjection !== projection || captureInProgress) {
+                onResult(null)
+                return@post
             }
-        }, bgHandler)
+            captureInProgress = true
 
-        try {
-            virtualDisplay = projection.createVirtualDisplay(
-                "ScamShieldCapture",
+            val metrics = DisplayMetrics()
+            @Suppress("DEPRECATION")
+            (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
+                .defaultDisplay
+                .getRealMetrics(metrics)
+            val width = metrics.widthPixels
+            val height = metrics.heightPixels
+            val density = metrics.densityDpi
+
+            val imageReader = ImageReader.newInstance(
                 width,
                 height,
-                density,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                imageReader.surface,
-                null,
-                bgHandler
+                android.graphics.PixelFormat.RGBA_8888,
+                2
             )
-        } catch (e: Exception) {
-            Log.e(TAG, "createVirtualDisplay failed", e)
-            onResult(null)
+            activeImageReader = imageReader
+
+            // Android 14 allows createVirtualDisplay() only once for each
+            // MediaProjection consent token. Keep that display for the whole
+            // sharing session and swap its ImageReader surface for each scan.
+            val delivered = java.util.concurrent.atomic.AtomicBoolean(false)
+            imageReader.setOnImageAvailableListener({ reader ->
+                if (!delivered.compareAndSet(false, true)) return@setOnImageAvailableListener
+
+                var image: Image? = null
+                var path: String? = null
+                try {
+                    image = reader.acquireLatestImage()
+                    path = image?.let { saveImageAsPng(context, it, width, height) }
+                } catch (e: Exception) {
+                    Log.e(TAG, "capture failed", e)
+                } finally {
+                    image?.close()
+                    finishCapture(reader)
+                    onResult(path)
+                }
+            }, bgHandler)
+
+            try {
+                val display = virtualDisplay
+                if (display == null) {
+                    virtualDisplay = projection.createVirtualDisplay(
+                        "ScamShieldCapture",
+                        width,
+                        height,
+                        density,
+                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                        imageReader.surface,
+                        null,
+                        bgHandler
+                    )
+                } else {
+                    display.setSurface(imageReader.surface)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "starting screen capture failed", e)
+                finishCapture(imageReader)
+                onResult(null)
+            }
         }
+    }
+
+    /** Detaches and closes only the per-scan surface, preserving the display. */
+    private fun finishCapture(reader: ImageReader) {
+        if (activeImageReader !== reader) return
+        try {
+            virtualDisplay?.setSurface(null)
+        } catch (e: Exception) {
+            Log.w(TAG, "detaching capture surface failed", e)
+        }
+        reader.setOnImageAvailableListener(null, null)
+        reader.close()
+        activeImageReader = null
+        captureInProgress = false
+    }
+
+    private fun releaseCaptureResources() {
+        activeImageReader?.let { reader ->
+            reader.setOnImageAvailableListener(null, null)
+            reader.close()
+        }
+        activeImageReader = null
+        virtualDisplay?.release()
+        virtualDisplay = null
+        captureInProgress = false
     }
 
     private fun saveImageAsPng(context: Context, image: Image, width: Int, height: Int): String {

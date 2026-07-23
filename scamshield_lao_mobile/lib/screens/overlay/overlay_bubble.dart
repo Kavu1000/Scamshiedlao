@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../config/app_constants.dart';
@@ -19,18 +21,26 @@ class OverlayBubble extends StatefulWidget {
 
 class _OverlayBubbleState extends State<OverlayBubble> {
   bool _scanning = false;
+  StreamSubscription<dynamic>? _overlaySubscription;
 
   @override
   void initState() {
     super.initState();
     // Listen for events from the main app thread
-    OverlayService.broadcastStream.listen((data) {
+    _overlaySubscription = OverlayService.broadcastStream.listen((data) {
       if (data is Map && data.containsKey('status')) {
+        if (!mounted) return;
         setState(() {
           _scanning = data['status'] == 'scanning';
         });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _overlaySubscription?.cancel();
+    super.dispose();
   }
 
   void _onBubbleTap() {
@@ -63,7 +73,8 @@ class _OverlayBubbleState extends State<OverlayBubble> {
                   spreadRadius: 2,
                 )
               ],
-              border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1.5),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.15), width: 1.5),
             ),
             child: Center(
               child: _scanning
