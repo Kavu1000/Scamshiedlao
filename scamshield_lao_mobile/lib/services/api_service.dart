@@ -23,7 +23,9 @@ class ApiService {
 
   /// Update the base URL (from settings).
   void setBaseUrl(String url) {
-    _dio.options.baseUrl = '$url/api';
+    final trimmed = url.trim().replaceAll(RegExp(r'/+$'), '');
+    final cleanUrl = trimmed.endsWith('/api') ? trimmed : '$trimmed/api';
+    _dio.options.baseUrl = cleanUrl;
   }
 
   /// POST /api/scan

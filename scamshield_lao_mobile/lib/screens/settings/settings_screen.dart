@@ -224,7 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 fontSize: 12,
                                 fontFamily: 'monospace'),
                             decoration: const InputDecoration(
-                              hintText: 'http://10.0.2.2:8000',
+                              hintText: 'http://172.20.10.11:8000',
                             ),
                             keyboardType: TextInputType.url,
                           ),

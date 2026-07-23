@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/scan_result.dart';
 import '../services/api_service.dart';
 import '../services/session_service.dart';
+import '../services/settings_service.dart';
 
 /// Scan state machine
 enum ScanStatus { idle, scanning, success, error }
@@ -46,7 +47,10 @@ class ScanNotifier extends Notifier<ScanState> {
     state = const ScanState(status: ScanStatus.scanning);
 
     try {
+      final settings = await ref.read(settingsServiceProvider).load();
       final api = ref.read(apiServiceProvider);
+      api.setBaseUrl(settings.backendUrl);
+
       final sessionId = await ref.read(sessionServiceProvider).getSessionId();
 
       final result = await api.scanContent(

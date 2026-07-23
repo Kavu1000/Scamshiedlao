@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../config/app_constants.dart';
 
 const _kSettingsKey = 'scamshield_settings';
 
@@ -19,7 +18,7 @@ class AppSettings {
     this.language = 'lo',
     this.sensitivity = 50,
     this.notifications = true,
-    this.backendUrl = 'http://10.0.2.2:8000',
+    this.backendUrl = 'http://172.20.10.11:8000',
   });
 
   AppSettings copyWith({
@@ -42,12 +41,18 @@ class AppSettings {
         'backendUrl': backendUrl,
       };
 
-  factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
-        language: json['language'] as String? ?? 'lo',
-        sensitivity: json['sensitivity'] as int? ?? 50,
-        notifications: json['notifications'] as bool? ?? true,
-        backendUrl: json['backendUrl'] as String? ?? kApiBaseUrl.replaceAll('/api', ''),
-      );
+  factory AppSettings.fromJson(Map<String, dynamic> json) {
+    var url = json['backendUrl'] as String? ?? 'http://172.20.10.11:8000';
+    if (url.contains('48096') || url.contains('10.0.2.2') || url.contains('localhost')) {
+      url = 'http://172.20.10.11:8000';
+    }
+    return AppSettings(
+      language: json['language'] as String? ?? 'lo',
+      sensitivity: json['sensitivity'] as int? ?? 50,
+      notifications: json['notifications'] as bool? ?? true,
+      backendUrl: url,
+    );
+  }
 }
 
 class SettingsService {

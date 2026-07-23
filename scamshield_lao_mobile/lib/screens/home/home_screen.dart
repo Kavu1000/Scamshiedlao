@@ -119,9 +119,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'reasons': result.reasons,
         'is_scam': result.isScam,
       });
-    } catch (_) {
-      // Clear scanning status on error
-      await FlutterOverlayWindow.shareData({'status': 'idle'});
+    } catch (e, stackTrace) {
+      debugPrint('[ScamShield] Overlay scan error: $e\n$stackTrace');
+      await FlutterOverlayWindow.shareData({
+        'risk_score': 0,
+        'risk_level': 'LOW',
+        'scam_type': 'none',
+        'reasons': ['Scan error: ${e.toString()}'],
+        'is_scam': false,
+      });
     }
   }
 

@@ -46,7 +46,7 @@ const kSpaceXl = 24.0;
 const kSpaceXxl = 32.0;
 
 /// API
-const kApiBaseUrl = 'http://10.0.2.2:8000/api';
+const kApiBaseUrl = 'http://172.20.10.11:8000/api';
 const kApiTimeoutSeconds = 10;
 const kHealthCheckTimeoutSeconds = 3;
 
