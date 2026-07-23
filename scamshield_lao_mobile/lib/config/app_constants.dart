@@ -46,8 +46,23 @@ const kSpaceXl = 24.0;
 const kSpaceXxl = 32.0;
 
 /// API
-const kApiBaseUrl = 'http://172.20.10.11:8000/api';
-const kApiTimeoutSeconds = 10;
+// This is only Dio's placeholder before the first real settings load —
+// every actual request calls ApiService.setBaseUrl(settings.backendUrl),
+// which reads the PERSISTED value from settings_service.dart. Change the
+// backend URL there (or in the Settings screen), not here.
+// 10.0.2.2 is the Android emulator's alias for the host machine's
+// localhost — plain 'localhost' resolves to the device/emulator itself,
+// not your Mac, so it can never reach a backend running on your machine.
+// A physical device needs the Mac's actual LAN IP instead (Settings screen).
+const kApiBaseUrl = 'http://10.0.2.2:8000/api';
+// const kApiBaseUrl = 'http://172.20.10.11:8000/api';
+// Connecting should be quick, but the response can be slow: when the heuristic
+// score warrants it the backend calls the OpenRouter AI (with retries + a
+// 5-model fallback chain), which regularly takes well over 10s. A short
+// receive timeout is why bubble scans of real scam text failed while quick
+// benign in-app scans (which skip the AI stage) succeeded.
+const kApiConnectTimeoutSeconds = 10;
+const kApiReceiveTimeoutSeconds = 60;
 const kHealthCheckTimeoutSeconds = 3;
 
 /// Risk thresholds (mirrors backend logic)

@@ -18,7 +18,8 @@ class AppSettings {
     this.language = 'lo',
     this.sensitivity = 50,
     this.notifications = true,
-    this.backendUrl = 'http://172.20.10.11:8000',
+    this.backendUrl = 'http://10.0.2.2:8000',
+    // this.backendUrl = 'http://172.20.10.11:8000',
   });
 
   AppSettings copyWith({
@@ -42,9 +43,15 @@ class AppSettings {
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
-    var url = json['backendUrl'] as String? ?? 'http://172.20.10.11:8000';
-    if (url.contains('48096') || url.contains('10.0.2.2') || url.contains('localhost')) {
-      url = 'http://172.20.10.11:8000';
+    var url = json['backendUrl'] as String? ?? 'http://10.0.2.2:8000';
+    // One-time migration away from stale hardcoded values from earlier dev
+    // sessions: a bare 'localhost' can never reach the host machine from an
+    // Android emulator/device, and a hotspot/LAN IP baked in as a default
+    // stops working the moment that network's DHCP lease changes. Deliberate
+    // custom URLs the user entered in Settings (including 10.0.2.2 or any
+    // other LAN IP) are left untouched.
+    if (url.contains('localhost') || url.contains('172.20.10.11')) {
+      url = 'http://10.0.2.2:8000';
     }
     return AppSettings(
       language: json['language'] as String? ?? 'lo',

@@ -15,8 +15,10 @@ class ApiService {
   ApiService() {
     _dio = Dio(BaseOptions(
       baseUrl: kApiBaseUrl,
-      connectTimeout: const Duration(seconds: kApiTimeoutSeconds),
-      receiveTimeout: const Duration(seconds: kApiTimeoutSeconds),
+      connectTimeout: const Duration(seconds: kApiConnectTimeoutSeconds),
+      // Long receive window: the scan endpoint may run the AI stage, which
+      // can take much longer than a connect handshake.
+      receiveTimeout: const Duration(seconds: kApiReceiveTimeoutSeconds),
       headers: {'Content-Type': 'application/json'},
     ));
   }
