@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:flutter/services.dart';
 import '../../config/app_constants.dart';
 import '../../services/overlay_service.dart';
+
+/// flutter_overlay_window's shareData only reliably relays main app ->
+/// overlay; a message sent from the overlay isolate never reaches the main
+/// isolate. This direct channel (wired up natively in MainActivity.kt) is our
+/// own bridge for the tap-to-scan signal.
+const _overlayBridge =
+    MethodChannel('com.scamshield.scamshield_lao_mobile/overlay_bridge');
 
 class OverlayBubble extends StatefulWidget {
   const OverlayBubble({super.key});
@@ -28,8 +35,8 @@ class _OverlayBubbleState extends State<OverlayBubble> {
 
   void _onBubbleTap() {
     if (_scanning) return;
-    // Notify the main thread that the user clicked to trigger a scan
-    FlutterOverlayWindow.shareData({'action': 'trigger_scan'});
+    // Notify the main isolate that the user tapped, to trigger a scan.
+    _overlayBridge.invokeMethod('triggerScan');
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import '../../config/app_constants.dart';
@@ -6,12 +7,20 @@ import '../../providers/scan_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../shared/widgets/ai_verified_badge.dart';
 import '../../services/overlay_service.dart';
-import '../../services/api_service.dart';
+import '../../services/screen_capture_service.dart';
+import '../../services/screen_scanner.dart';
 import 'widgets/risk_score_card.dart';
 import 'widgets/safe_card.dart';
 import 'widgets/skeleton_card.dart';
 import 'widgets/status_bar.dart';
 import 'widgets/scan_input_section.dart';
+
+/// flutter_overlay_window's shareData only reliably relays main app ->
+/// overlay; a message sent from the overlay isolate never reaches the main
+/// isolate. This direct channel (wired up natively in MainActivity.kt) is our
+/// own bridge for signals coming from the overlay bubble/result card.
+const _overlayBridge =
+    MethodChannel('com.scamshield.scamshield_lao_mobile/overlay_bridge');
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -28,15 +37,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     _checkOverlayStatus();
 
-    // Listen to overlay messages from the background overlay service thread
-    OverlayService.broadcastStream.listen((data) {
-      if (data is Map && data['action'] == 'trigger_scan') {
+    // Signals from the overlay bubble/result card (see overlay_bridge in
+    // MainActivity.kt — flutter_overlay_window's own shareData can't carry
+    // these overlay -> main isolate).
+    _overlayBridge.setMethodCallHandler((call) async {
+      if (call.method == 'triggerScan') {
         _handleOverlayScanTrigger();
-      } else if (data is Map && data['action'] == 'close_result') {
-        ref.read(overlayServiceProvider).closeAll().then((_) {
-          // Restart bubble after result card is closed
-          ref.read(overlayServiceProvider).showBubble();
-        });
+      } else if (call.method == 'closeResult') {
+        await ref.read(overlayServiceProvider).closeAll();
+        // Restart bubble after result card is closed
+        await ref.read(overlayServiceProvider).showBubble();
       }
     });
   }
@@ -52,34 +62,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final overlay = ref.read(overlayServiceProvider);
     if (_overlayActive) {
       await overlay.closeAll();
+      await ref.read(screenCaptureServiceProvider).stopProjection();
       setState(() => _overlayActive = false);
     } else {
       final permitted = await overlay.checkPermission();
       if (!permitted) {
         await overlay.requestPermission();
       }
-      if (await overlay.checkPermission()) {
-        await overlay.showBubble();
-        setState(() => _overlayActive = true);
+      if (!await overlay.checkPermission()) return;
+
+      // Screen-capture consent must be granted up front, while this app is
+      // still in the foreground — it can't be requested once the bubble is
+      // tapped over another app.
+      final captureGranted =
+          await ref.read(screenCaptureServiceProvider).requestPermission();
+      if (!captureGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Screen-capture permission is required for the floating bubble to scan on-screen content.'),
+            ),
+          );
+        }
+        return;
       }
+
+      await overlay.showBubble();
+      setState(() => _overlayActive = true);
     }
   }
 
-  /// Triggered when overlay bubble is tapped.
-  /// Simulates taking a screenshot, performing ML Kit OCR, scanning, and pushing data back to OverlayResultCard.
+  /// Triggered when overlay bubble is tapped while another app (e.g. Messenger)
+  /// is in the foreground. Grabs a screenshot of whatever is currently on
+  /// screen via MediaProjection, runs on-device OCR, and scans the extracted
+  /// text — then pushes the result back to the OverlayResultCard.
   Future<void> _handleOverlayScanTrigger() async {
     // Notify overlay bubble to show a loading/scanning spinner
     await FlutterOverlayWindow.shareData({'status': 'scanning'});
 
     try {
-      // For demonstration of on-screen scan, we run a simulated scan on the current screen's typical text content.
-      // In a physical device release, this captures MediaProjection screenshots.
-      final api = ref.read(apiServiceProvider);
-      final result = await api.scanContent(
-        text: "URGENT: Win standard \$5,000 weekly salary from home! Join now via WhatsApp: +8562055551234",
-        url: "on-screen-live",
-        pageTitle: "On-Screen Capture",
-      );
+      final imagePath = await ref.read(screenCaptureServiceProvider).capture();
+      if (imagePath == null) {
+        await FlutterOverlayWindow.shareData({'status': 'idle'});
+        return;
+      }
+
+      final result =
+          await ref.read(screenScannerProvider).scanImageScreen(imagePath);
 
       // Share result to the overlay thread (which will display the OverlayResultCard)
       await FlutterOverlayWindow.shareData({

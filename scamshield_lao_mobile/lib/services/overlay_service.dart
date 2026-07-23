@@ -15,12 +15,15 @@ class OverlayService {
 
   Future<void> showBubble() async {
     if (!await FlutterOverlayWindow.isActive()) {
+      // Compact square window (~84dp at 2.6x density) sized to the bubble so
+      // the rest of the screen stays tappable. The window is grown later when
+      // the result card is shown (see main.dart resizeOverlay).
       await FlutterOverlayWindow.showOverlay(
         enableDrag: true,
         overlayTitle: "ScamShield Lao",
         overlayContent: "Protection Active",
-        height: 500,
-        width: 400,
+        height: 220,
+        width: 220,
       );
     }
   }
